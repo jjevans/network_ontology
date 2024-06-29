@@ -1,0 +1,92 @@
+<html>
+<head>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.2.3/cytoscape.js"></script>
+	<script src="https://code.jquery.com/jquery-3.2.1.js" integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE=" crossorigin="anonymous"></script>
+	<script src="cola.min.js"></script>
+	<script src="cytoscape-cola.js"></script>
+	<script src="cytoscape-navigator.js"></script>
+	<script src="cytoscape-dagre.js"></script>
+	<script src="cy_utils.js"></script>
+	<script src="cy_navigator.js"></script>
+	<script src="cy_panel.js"></script>
+	<link rel="stylesheet" href="css/bootflat.min.css">
+	<link rel="stylesheet" href="graph.css">
+	
+	<script>
+		var pathfile = "graph_path.tbl";
+		var termfile = "hpo_id_name_acc.tbl";
+		var treedepth = 3;
+		//var rootnode = 100547;//top==1
+		var rootnode = 40068;//top==1
+		var dohide = true;
+		
+		var terms = new Object();
+		var elems;
+		var cy;
+		
+		$.ajax({
+			url: termfile,
+			success: function(d){
+				d.split("\n").forEach(function(line){
+					if(line.length > 0){
+						cols = line.split("\t");
+						terms[cols[0]] = {accession: cols[0], term: cols[2], description: cols[1], label: cols[2], children: new Array()}
+					}
+				});
+				console.log('complete: term');
+				
+				$.ajax({
+					url: pathfile,
+					success: function(d){
+						d.split("\n").forEach(function(line){
+							cols = line.split("\t");
+							if(cols[1] && terms[cols[0]]){
+								terms[cols[0]].children.push(cols[1]);
+								//terms[cols[0]].label = terms[cols[0]].description;
+							}
+						});
+						console.log('complete: path')
+				
+						elems = subgraph(terms, rootnode, treedepth, dohide);
+		
+						cy = init_cy(elems);
+						var nav = navigator();
+
+						console.log('complete: graph');
+						
+						/*console.log('before: '+cy.elements().length.toString());
+						all_elems = cy.collection(subgraph(terms, 1, undefined));
+						cy.elements().add(all_elems);
+						
+						console.log('complete: populate all elements');
+						console.log('after: '+cy.elements().length.toString());*/
+					},
+					dataType: "text"
+				});
+			},
+			dataType: "text"
+		});
+	</script>
+
+</head>
+<body>
+	<div id="cy"></div>		
+	<div id="panel">
+		<button type='button' id='reset' class='btn btn-primary btn-block'>RESET</button>
+				
+		<table id='panel_tbl'>
+			<thead>
+				<tr><th>HPO</th><th id='head'></th></tr>
+			</thead>
+			<tbody>
+				<tr><td>term:</td><td id='term'></td></tr>
+				<tr><td>description:</td><td id='desc'></td></tr>
+				<tr><td>parent:</td><td id='parent'></td></tr>
+				<tr id='empty_row'><td></td><td></td></tr>
+			</tbody>
+		</table>
+		
+	</div>
+<script>$('#panel').hide();</script>
+</body>
+</html>
